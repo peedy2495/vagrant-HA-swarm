@@ -22,7 +22,7 @@ services:
       - "8000:8000"
     volumes:
       - type: bind
-        source: /tmp/assets/stacks/01_portainer.yaml
+        source: /data/docker-volumes/portainer
         target: /data
     networks:
       - portainer_agent
