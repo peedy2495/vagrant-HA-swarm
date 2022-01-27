@@ -1,0 +1,6 @@
+.vagrant
+id_rsa*
+gitrepos
+bin
+certs
+*.gpg
