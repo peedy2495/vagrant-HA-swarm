@@ -1,5 +1,0 @@
-{
-    "data-root": "/data/docker",
-    "insecure-registries": ["NEXUS_IP:DOCKER_PORT"],
-    "registry-mirrors": ["http://NEXUS_IP:DOCKER_PORT"]
-}
