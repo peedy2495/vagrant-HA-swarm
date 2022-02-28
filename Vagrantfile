@@ -31,9 +31,9 @@ require 'vagrant-reload'
 environment = YAML.load_file('assets/environment.yaml')
 
 # get common environment keys
-env_common = environment['virt']
+env_common = environment['env_common']
 
-ASSETS = "/tmp/assets"
+ASSETS = env_common["assets"]
 
 # get global settings in variables
 virt_settings = environment['virt']
@@ -42,10 +42,10 @@ virt_settings = environment['virt']
 nodes = environment['nodes']
 
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
-
+    
     # Provide assets to every instance
     #config.vm.synced_folder "assets/", "/mnt/vagrant", mount_options: ["vers=3,tcp"]
-
+    
     #Disabling the default /vagrant share
     config.vm.synced_folder ".", "/vagrant", disabled: true
 
