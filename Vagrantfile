@@ -26,6 +26,9 @@ require 'yaml'
 #requires: plugin vagrant-reload
 require 'vagrant-reload'
 
+# get hostname
+require "socket"
+HOST = Socket.gethostname
 
 # Read yaml node definitions to create **Update environment.yml to reflect any changes
 environment = YAML.load_file('assets/environment.yaml')
@@ -55,54 +58,56 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     config.vm.provision :shell, :path => "assets/provision_base.sh", :args => ["#{ASSETS}"]
 
     nodes.each_with_index do |nodes, index|
-        config.vm.define nodes["name"] do |node|
-            node.vm.hostname = "#{nodes["name"]}.#{env_common["domain"]}"
-            node.vm.box = virt_settings['box']
-            ints = nodes["interfaces"]
-            ints.each do |int|
-                if int["method"] == "static" and int["type"] == "private_network" and int["network_name"] != "None" and int["auto_config"] == "True"
-                    node.vm.network "private_network", ip: int["ip"], virtualbox__intnet: int["network_name"]
+        if HOST == nodes["host"]
+            config.vm.define nodes["name"] do |node|
+                node.vm.hostname = "#{nodes["name"]}.#{env_common["domain"]}"
+                node.vm.box = virt_settings['box']
+                ints = nodes["interfaces"]
+                ints.each do |int|
+                    if int["method"] == "static" and int["type"] == "private_network" and int["network_name"] != "None" and int["auto_config"] == "True"
+                        node.vm.network "private_network", ip: int["ip"], virtualbox__intnet: int["network_name"]
+                    end
+                    if int["method"] == "static" and int["type"] == "private_network" and int["network_name"] != "None" and int["auto_config"] == "False"
+                        node.vm.network "private_network", ip: int["ip"], virtualbox__intnet: int["network_name"], auto_config: false
+                    end
+                    if int["method"] == "static" and int["type"] == "private_network" and int["network_name"] == "None" and int["auto_config"] == "True"
+                        node.vm.network "private_network", ip: int["ip"]
+                    end
+                    if int["method"] == "static" and int["type"] == "private_network" and int["network_name"] == "None" and int["auto_config"] == "False"
+                        node.vm.network "private_network", ip: int["ip"], auto_config: false
+                    end
+                    if int["method"] == "dhcp" and int["type"] == "private_network"
+                        node.vm.network "private_network", type: "dhcp"
+                    end
                 end
-                if int["method"] == "static" and int["type"] == "private_network" and int["network_name"] != "None" and int["auto_config"] == "False"
-                    node.vm.network "private_network", ip: int["ip"], virtualbox__intnet: int["network_name"], auto_config: false
-                end
-                if int["method"] == "static" and int["type"] == "private_network" and int["network_name"] == "None" and int["auto_config"] == "True"
-                    node.vm.network "private_network", ip: int["ip"]
-                end
-                if int["method"] == "static" and int["type"] == "private_network" and int["network_name"] == "None" and int["auto_config"] == "False"
-                    node.vm.network "private_network", ip: int["ip"], auto_config: false
-                end
-                if int["method"] == "dhcp" and int["type"] == "private_network"
-                    node.vm.network "private_network", type: "dhcp"
-                end
-            end
 
-            node.vm.provider "libvirt" do |libvirt|
-                libvirt.memory = nodes["mem"]
-                libvirt.cpus = nodes["cpus"]
-                libvirt.storage_pool_name = "machines"
-                libvirt.driver = "kvm"
-                libvirt.cpu_mode = 'host-model'
-                libvirt.cpu_model = 'qemu64'
-                libvirt.storage :file, :size => '10G', :format => 'qcow2'
-            end
+                node.vm.provider "libvirt" do |libvirt|
+                    libvirt.memory = nodes["mem"]
+                    libvirt.cpus = nodes["cpus"]
+                    libvirt.storage_pool_name = "machines"
+                    libvirt.driver = "kvm"
+                    libvirt.cpu_mode = 'host-model'
+                    libvirt.cpu_model = 'qemu64'
+                    libvirt.storage :file, :size => '10G', :format => 'qcow2'
+                end
 
-            node.vm.provision :reload
-            node.vm.provision "file", source: "assets" , destination: "#{ASSETS}"
-            node.vm.provision :shell, :path => "assets/provision_docker.sh", :args => ["install"]
-            node.vm.provision :shell, :path => "assets/provision_gluster.sh", :args => ["install"]
-            
-            if nodes["type"] == "init"
-                node.vm.provision :shell, :path => "assets/provision_gluster.sh", :args => ["peer"]
-                node.vm.provision :shell, :path => "assets/provision_gluster.sh", :args => ["mkvol"]
-                node.vm.provision :shell, :path => "assets/provision_docker.sh", :args => ["swarm-rollout"]
-            end
-            
-            node.vm.provision :shell, :path => "assets/provision_gluster.sh", :args => ["mntvol"]
-            node.vm.provision :shell, :path => "assets/provision_keepalived.sh"
+                node.vm.provision :reload
+                node.vm.provision "file", source: "assets" , destination: "#{ASSETS}"
+                node.vm.provision :shell, :path => "assets/provision_docker.sh", :args => ["install"]
+                node.vm.provision :shell, :path => "assets/provision_gluster.sh", :args => ["install"]
 
-            if nodes["type"] == "init"
-                node.vm.provision :shell, :path => "assets/deploy_stacks.sh"
+                if nodes["type"] == "init"
+                    node.vm.provision :shell, :path => "assets/provision_gluster.sh", :args => ["peer"]
+                    node.vm.provision :shell, :path => "assets/provision_gluster.sh", :args => ["mkvol"]
+                    node.vm.provision :shell, :path => "assets/provision_docker.sh", :args => ["swarm-rollout"]
+                end
+
+                node.vm.provision :shell, :path => "assets/provision_gluster.sh", :args => ["mntvol"]
+                node.vm.provision :shell, :path => "assets/provision_keepalived.sh"
+
+                if nodes["type"] == "init"
+                    node.vm.provision :shell, :path => "assets/deploy_stacks.sh"
+                end
             end
         end
     end
