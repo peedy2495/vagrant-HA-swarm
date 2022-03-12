@@ -1,0 +1,42 @@
+version: '3.8'
+
+volumes:
+  postgres_data:
+      driver: local
+
+services:
+  postgres:
+      image: postgres
+      volumes:
+        - postgres_data:/var/lib/postgresql/data
+      environment:
+        POSTGRES_DB: keycloak
+        POSTGRES_USER: keycloak
+        POSTGRES_PASSWORD: password
+  keycloak:
+      image: quay.io/keycloak/keycloak:legacy
+      secrets:
+        - source: keycloak-crt
+          target: /etc/x509/https/tls.crt
+        - source: keycloak-key
+          target: /etc/x509/https/tls.key
+      environment:
+        DB_VENDOR: POSTGRES
+        DB_ADDR: postgres
+        DB_DATABASE: keycloak
+        DB_USER: keycloak
+        DB_SCHEMA: public
+        DB_PASSWORD: password
+        KEYCLOAK_USER: admin
+        KEYCLOAK_PASSWORD: Pa55w0rd
+      ports:
+        - 8080:8080
+        - 8443:8443
+      depends_on:
+        - postgres
+        
+secrets:
+  keycloak-key:
+    external: true
+  keycloak-crt:
+    external: true

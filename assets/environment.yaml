@@ -26,9 +26,10 @@ services:
     volname: gfs-docker
     volpath: /data/gluster/volume1
     mntpath: /data/docker-volumes
+    
 nodes:
   - name: edge0
-    host: cc
+    host: cc.testing.loc
     type: init
     mem: 2048
     cpus: 2
@@ -48,7 +49,7 @@ nodes:
       prio: 100
 
   - name: edge1
-    host: cc
+    host: cc.testing.loc
     type: manager
     mem: 2048
     cpus: 2
@@ -68,7 +69,7 @@ nodes:
       prio: 99
 
   - name: edge2
-    host: cc
+    host: cc.testing.loc
     type: manager
     mem: 2048
     cpus: 2
@@ -88,7 +89,7 @@ nodes:
       prio: 98
 
   - name: edge3
-    host: cc
+    host: cc.testing.loc
     type: worker
     mem: 2048
     cpus: 2
